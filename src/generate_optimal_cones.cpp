@@ -322,7 +322,13 @@ void generate_partitioned_optimal_cones(
     {
       cone_angles[vi] =  2.0 * M_PI + cone_angle_change;
       cone_vertices.push_back(vi);
-    } else {
+    }
+    else if (is_boundary_vertex[vi])
+    {
+      cone_angles[vi] = M_PI;
+    }
+    else
+    {
       cone_angles[vi] = 2.0 * M_PI;
     }
   }
