@@ -248,6 +248,9 @@ void generate_partitioned_optimal_cones(
     cone_deficit
   );
 
+  // Nothing to do if 0 cones to place
+  if (cone_deficit <= 0) return;
+
   // Partition the mesh into groups by vertex distances
   Eigen::VectorXi group_indices;
   Eigen::VectorXi seed_vertices;
