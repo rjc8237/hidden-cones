@@ -238,20 +238,39 @@ void generate_partitioned_optimal_cones(
   int cone_deficit = num_cones_per_index * std::abs<int>(cone_index_deficit);
   double cone_angle_change = -(2 * M_PI * cone_index_deficit) / cone_deficit;
 
-  // Get vertex one rings
-  std::vector<std::vector<size_t>> adjacency_list;
-  igl::adjacency_list(F, adjacency_list);
-
   // Compute index of cones to place
   spdlog::info(
     "Must place {} cones",
     cone_deficit
   );
 
+  // Compute boundary vertices
+  std::vector<bool> is_boundary_vertex(num_vertices, false);
+  for (size_t i = 0; i < boundary_vertices.size(); ++i)
+  {
+    int bvi = boundary_vertices[i];
+    is_boundary_vertex[bvi] = true;
+  }
+
+  // First build flat cone angles with 2 pi for interior and pi for boundary
+  cone_angles.resize(num_vertices);
+  for (size_t vi = 0; vi < num_vertices; ++vi)
+  {
+    if (is_boundary_vertex[vi])
+    {
+      cone_angles[vi] = M_PI;
+    }
+    else
+    {
+      cone_angles[vi] = 2.0 * M_PI;
+    }
+  }
+
   // Nothing to do if 0 cones to place
   if (cone_deficit <= 0) return;
 
   // Partition the mesh into groups by vertex distances
+  // WARNING: Assumes positive cone deficit
   Eigen::VectorXi group_indices;
   Eigen::VectorXi seed_vertices;
   Eigen::VectorXd distances_squared;
@@ -283,15 +302,6 @@ void generate_partitioned_optimal_cones(
     }
   }
 
-  // First build cone index array with 0 for interior and 2 for boundary
-  std::vector<bool> is_boundary_vertex(num_vertices, false);
-  std::vector<bool> is_cone(num_vertices, false);
-  for (size_t i = 0; i < boundary_vertices.size(); ++i)
-  {
-    int bvi = boundary_vertices[i];
-    is_boundary_vertex[bvi] = true;
-  }
-
   // Generate cone energy
   std::vector<double> cone_energy;
   ConeEnergyParameters cone_energy_params;
@@ -302,7 +312,12 @@ void generate_partitioned_optimal_cones(
     cone_energy_params
   );
 
+  // Get vertex one rings
+  std::vector<std::vector<size_t>> adjacency_list;
+  igl::adjacency_list(F, adjacency_list);
+
   // Add a cone for each group
+  std::vector<bool> is_cone(num_vertices, false);
   int num_cones = cone_deficit;
   for (size_t i = 0; i < num_cones; ++i)
   {
@@ -325,14 +340,6 @@ void generate_partitioned_optimal_cones(
     {
       cone_angles[vi] =  2.0 * M_PI + cone_angle_change;
       cone_vertices.push_back(vi);
-    }
-    else if (is_boundary_vertex[vi])
-    {
-      cone_angles[vi] = M_PI;
-    }
-    else
-    {
-      cone_angles[vi] = 2.0 * M_PI;
     }
   }
 }
